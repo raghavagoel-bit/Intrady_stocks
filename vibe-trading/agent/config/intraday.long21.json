@@ -1,0 +1,291 @@
+{
+  "_comment": "LOCAL config - 38-stock Nifty universe (3J scan, structural filters only: median price <= Rs3,000 + liquidity; ids verified against the Dhan scrip master 2026-07-15). max_positions stays 4 (per-slot sizing Rs6,250). Secrets stay in agent/.env.",
+  "universe": [
+    {
+      "symbol": "ADANIENT.NS",
+      "security_id": "25",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ADANIPORTS.NS",
+      "security_id": "15083",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ASIANPAINT.NS",
+      "security_id": "236",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "AXISBANK.NS",
+      "security_id": "5900",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "BAJAJFINSV.NS",
+      "security_id": "16675",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "BAJFINANCE.NS",
+      "security_id": "317",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "BEL.NS",
+      "security_id": "383",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "BHARTIARTL.NS",
+      "security_id": "10604",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "BPCL.NS",
+      "security_id": "526",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "CIPLA.NS",
+      "security_id": "694",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "COALINDIA.NS",
+      "security_id": "20374",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "DRREDDY.NS",
+      "security_id": "881",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "HCLTECH.NS",
+      "security_id": "7229",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "HDFCBANK.NS",
+      "security_id": "1333",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "HDFCLIFE.NS",
+      "security_id": "467",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "HINDALCO.NS",
+      "security_id": "1363",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "HINDUNILVR.NS",
+      "security_id": "1394",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ICICIBANK.NS",
+      "security_id": "4963",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "INDUSINDBK.NS",
+      "security_id": "5258",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "INFY.NS",
+      "security_id": "1594",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ITC.NS",
+      "security_id": "1660",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "JSWSTEEL.NS",
+      "security_id": "11723",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "KOTAKBANK.NS",
+      "security_id": "1922",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "NESTLEIND.NS",
+      "security_id": "17963",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "NTPC.NS",
+      "security_id": "11630",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ONGC.NS",
+      "security_id": "2475",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "POWERGRID.NS",
+      "security_id": "14977",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "RELIANCE.NS",
+      "security_id": "2885",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "SBILIFE.NS",
+      "security_id": "21808",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "SBIN.NS",
+      "security_id": "3045",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "SHRIRAMFIN.NS",
+      "security_id": "4306",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "SUNPHARMA.NS",
+      "security_id": "3351",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TATACONSUM.NS",
+      "security_id": "3432",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TATASTEEL.NS",
+      "security_id": "3499",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TCS.NS",
+      "security_id": "11536",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TECHM.NS",
+      "security_id": "13538",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TRENT.NS",
+      "security_id": "1964",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "WIPRO.NS",
+      "security_id": "3787",
+      "exchange_segment": "NSE_EQ"
+    }
+  ],
+  "interval": "15m",
+  "market_open": "09:15",
+  "market_close": "15:30",
+  "strategy_flat": "15:00",
+  "squareoff": "15:15",
+  "initial_cash": 50000,
+  "max_positions": 4,
+  "lookback_bars": 120,
+  "strategy_run_dir": "../../strategies/orb_intraday",
+  "_roster_comment": "Launch-gate fallback. NOW 20 long-only slots (was 21) - llm_trader removed per 3M (2026-07-16, cost). Filename kept intentionally (rename out of scope). Use only if a QA gate is red pre-bell.",
+  "roster": [
+    {
+      "name": "orb",
+      "run_dir": "../../strategies/orb_intraday"
+    },
+    {
+      "name": "pullback",
+      "run_dir": "../../strategies/pullback_buy"
+    },
+    {
+      "name": "ema_trend",
+      "run_dir": "../../strategies/ema_trend"
+    },
+    {
+      "name": "momentum_rsi",
+      "run_dir": "../../strategies/momentum_rsi"
+    },
+    {
+      "name": "gap_go",
+      "run_dir": "../../strategies/gap_go"
+    },
+    {
+      "name": "gap_fade",
+      "run_dir": "../../strategies/gap_fade"
+    },
+    {
+      "name": "vwap_hold",
+      "run_dir": "../../strategies/vwap_hold"
+    },
+    {
+      "name": "range_break",
+      "run_dir": "../../strategies/range_break"
+    },
+    {
+      "name": "macd_cross",
+      "run_dir": "../../strategies/macd_cross"
+    },
+    {
+      "name": "boll_bounce",
+      "run_dir": "../../strategies/boll_bounce"
+    },
+    {
+      "name": "boll_break",
+      "run_dir": "../../strategies/boll_break"
+    },
+    {
+      "name": "atr_trail",
+      "run_dir": "../../strategies/atr_trail"
+    },
+    {
+      "name": "rel_strength",
+      "run_dir": "../../strategies/rel_strength"
+    },
+    {
+      "name": "three_thrust",
+      "run_dir": "../../strategies/three_thrust"
+    },
+    {
+      "name": "supertrend",
+      "run_dir": "../../strategies/supertrend"
+    },
+    {
+      "name": "ut_bot",
+      "run_dir": "../../strategies/ut_bot"
+    },
+    {
+      "name": "squeeze_momentum",
+      "run_dir": "../../strategies/squeeze_momentum"
+    },
+    {
+      "name": "wavetrend",
+      "run_dir": "../../strategies/wavetrend"
+    },
+    {
+      "name": "qqe_mode",
+      "run_dir": "../../strategies/qqe_mode"
+    },
+    {
+      "name": "oi_dma_adx",
+      "run_dir": "../../strategies/oi_dma_adx"
+    }
+  ],
+  "per_strategy_cash": 25000,
+  "per_strategy_loss_cutoff": 10000,
+  "gemini_model": "gemini-3.5-flash",
+  "gemini_provider": "gemini"
+}

@@ -1,0 +1,331 @@
+{
+  "_comment": "Vibe-Intraday paper-runtime config. Copy to config/intraday.json and fill security_id per symbol (Dhan numeric ids from the scrip master https://images.dhan.co/api-data/api-scrip-master.csv — VERIFY before live; e.g. HDFCBANK=1333, RELIANCE=2885, TATASTEEL=3499, ICICIBANK=4963 on NSE_EQ). Secrets live in agent/.env, NOT here. | Roster: 42 slots = 20 long-only rule engines + their 20 hybrid `_ls` twins (allow_short=true, same run_dir, 3L A/B) + 2 local-LLM slots (3R: builtin:llm_trader with params.provider=ollama — needs a local Ollama server, no key).",
+  "universe": [
+    {
+      "symbol": "HDFCBANK.NS",
+      "security_id": "PLACEHOLDER-SECURITY-ID",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "RELIANCE.NS",
+      "security_id": "PLACEHOLDER-SECURITY-ID",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "TATASTEEL.NS",
+      "security_id": "PLACEHOLDER-SECURITY-ID",
+      "exchange_segment": "NSE_EQ"
+    },
+    {
+      "symbol": "ICICIBANK.NS",
+      "security_id": "PLACEHOLDER-SECURITY-ID",
+      "exchange_segment": "NSE_EQ"
+    }
+  ],
+  "interval": "15m",
+  "market_open": "09:15",
+  "market_close": "15:30",
+  "strategy_flat": "15:00",
+  "squareoff": "15:15",
+  "initial_cash": 50000,
+  "max_positions": 4,
+  "lookback_bars": 60,
+  "strategy_run_dir": "../../strategies/orb_intraday",
+  "roster": [
+    {
+      "name": "orb",
+      "run_dir": "../../strategies/orb_intraday"
+    },
+    {
+      "name": "pullback",
+      "run_dir": "../../strategies/pullback_buy"
+    },
+    {
+      "name": "ema_trend",
+      "run_dir": "../../strategies/ema_trend"
+    },
+    {
+      "name": "momentum_rsi",
+      "run_dir": "../../strategies/momentum_rsi"
+    },
+    {
+      "name": "gap_go",
+      "run_dir": "../../strategies/gap_go"
+    },
+    {
+      "name": "gap_fade",
+      "run_dir": "../../strategies/gap_fade"
+    },
+    {
+      "name": "vwap_hold",
+      "run_dir": "../../strategies/vwap_hold"
+    },
+    {
+      "name": "range_break",
+      "run_dir": "../../strategies/range_break"
+    },
+    {
+      "name": "macd_cross",
+      "run_dir": "../../strategies/macd_cross"
+    },
+    {
+      "name": "boll_bounce",
+      "run_dir": "../../strategies/boll_bounce"
+    },
+    {
+      "name": "boll_break",
+      "run_dir": "../../strategies/boll_break"
+    },
+    {
+      "name": "atr_trail",
+      "run_dir": "../../strategies/atr_trail"
+    },
+    {
+      "name": "rel_strength",
+      "run_dir": "../../strategies/rel_strength"
+    },
+    {
+      "name": "three_thrust",
+      "run_dir": "../../strategies/three_thrust"
+    },
+    {
+      "name": "supertrend",
+      "run_dir": "../../strategies/supertrend"
+    },
+    {
+      "name": "ut_bot",
+      "run_dir": "../../strategies/ut_bot"
+    },
+    {
+      "name": "squeeze_momentum",
+      "run_dir": "../../strategies/squeeze_momentum"
+    },
+    {
+      "name": "wavetrend",
+      "run_dir": "../../strategies/wavetrend"
+    },
+    {
+      "name": "qqe_mode",
+      "run_dir": "../../strategies/qqe_mode"
+    },
+    {
+      "name": "oi_dma_adx",
+      "run_dir": "../../strategies/oi_dma_adx"
+    },
+    {
+      "name": "bb_rsi",
+      "run_dir": "../../strategies/bb_rsi"
+    },
+    {
+      "name": "macd_sma200",
+      "run_dir": "../../strategies/macd_sma200"
+    },
+    {
+      "name": "macd_rsi",
+      "run_dir": "../../strategies/macd_rsi"
+    },
+    {
+      "name": "pmax",
+      "run_dir": "../../strategies/pmax"
+    },
+    {
+      "name": "hull_suite",
+      "run_dir": "../../strategies/hull_suite"
+    },
+    {
+      "name": "ao_stoch",
+      "run_dir": "../../strategies/ao_stoch"
+    },
+    {
+      "name": "golden_cross",
+      "run_dir": "../../strategies/golden_cross"
+    },
+    {
+      "name": "flawless_victory",
+      "run_dir": "../../strategies/flawless_victory"
+    },
+    {
+      "name": "ema_cross",
+      "run_dir": "../../strategies/ema_cross"
+    },
+    {
+      "name": "ichimoku",
+      "run_dir": "../../strategies/ichimoku"
+    },
+    {
+      "name": "rsi_div",
+      "run_dir": "../../strategies/rsi_div"
+    },
+    {
+      "name": "orb_ls",
+      "run_dir": "../../strategies/orb_intraday",
+      "allow_short": true
+    },
+    {
+      "name": "pullback_ls",
+      "run_dir": "../../strategies/pullback_buy",
+      "allow_short": true
+    },
+    {
+      "name": "ema_trend_ls",
+      "run_dir": "../../strategies/ema_trend",
+      "allow_short": true
+    },
+    {
+      "name": "momentum_rsi_ls",
+      "run_dir": "../../strategies/momentum_rsi",
+      "allow_short": true
+    },
+    {
+      "name": "gap_go_ls",
+      "run_dir": "../../strategies/gap_go",
+      "allow_short": true
+    },
+    {
+      "name": "gap_fade_ls",
+      "run_dir": "../../strategies/gap_fade",
+      "allow_short": true
+    },
+    {
+      "name": "vwap_hold_ls",
+      "run_dir": "../../strategies/vwap_hold",
+      "allow_short": true
+    },
+    {
+      "name": "range_break_ls",
+      "run_dir": "../../strategies/range_break",
+      "allow_short": true
+    },
+    {
+      "name": "macd_cross_ls",
+      "run_dir": "../../strategies/macd_cross",
+      "allow_short": true
+    },
+    {
+      "name": "boll_bounce_ls",
+      "run_dir": "../../strategies/boll_bounce",
+      "allow_short": true
+    },
+    {
+      "name": "boll_break_ls",
+      "run_dir": "../../strategies/boll_break",
+      "allow_short": true
+    },
+    {
+      "name": "atr_trail_ls",
+      "run_dir": "../../strategies/atr_trail",
+      "allow_short": true
+    },
+    {
+      "name": "rel_strength_ls",
+      "run_dir": "../../strategies/rel_strength",
+      "allow_short": true
+    },
+    {
+      "name": "three_thrust_ls",
+      "run_dir": "../../strategies/three_thrust",
+      "allow_short": true
+    },
+    {
+      "name": "supertrend_ls",
+      "run_dir": "../../strategies/supertrend",
+      "allow_short": true
+    },
+    {
+      "name": "ut_bot_ls",
+      "run_dir": "../../strategies/ut_bot",
+      "allow_short": true
+    },
+    {
+      "name": "squeeze_momentum_ls",
+      "run_dir": "../../strategies/squeeze_momentum",
+      "allow_short": true
+    },
+    {
+      "name": "wavetrend_ls",
+      "run_dir": "../../strategies/wavetrend",
+      "allow_short": true
+    },
+    {
+      "name": "qqe_mode_ls",
+      "run_dir": "../../strategies/qqe_mode",
+      "allow_short": true
+    },
+    {
+      "name": "oi_dma_adx_ls",
+      "run_dir": "../../strategies/oi_dma_adx",
+      "allow_short": true
+    },
+    {
+      "name": "bb_rsi_ls",
+      "run_dir": "../../strategies/bb_rsi",
+      "allow_short": true
+    },
+    {
+      "name": "macd_sma200_ls",
+      "run_dir": "../../strategies/macd_sma200",
+      "allow_short": true
+    },
+    {
+      "name": "macd_rsi_ls",
+      "run_dir": "../../strategies/macd_rsi",
+      "allow_short": true
+    },
+    {
+      "name": "pmax_ls",
+      "run_dir": "../../strategies/pmax",
+      "allow_short": true
+    },
+    {
+      "name": "hull_suite_ls",
+      "run_dir": "../../strategies/hull_suite",
+      "allow_short": true
+    },
+    {
+      "name": "ao_stoch_ls",
+      "run_dir": "../../strategies/ao_stoch",
+      "allow_short": true
+    },
+    {
+      "name": "golden_cross_ls",
+      "run_dir": "../../strategies/golden_cross",
+      "allow_short": true
+    },
+    {
+      "name": "flawless_victory_ls",
+      "run_dir": "../../strategies/flawless_victory",
+      "allow_short": true
+    },
+    {
+      "name": "ema_cross_ls",
+      "run_dir": "../../strategies/ema_cross",
+      "allow_short": true
+    },
+    {
+      "name": "ichimoku_ls",
+      "run_dir": "../../strategies/ichimoku",
+      "allow_short": true
+    },
+    {
+      "name": "rsi_div_ls",
+      "run_dir": "../../strategies/rsi_div",
+      "allow_short": true
+    },
+    {
+      "name": "llm_local_a",
+      "run_dir": "builtin:llm_trader",
+      "params": { "provider": "ollama", "model": "llama3.1:8b" }
+    },
+    {
+      "name": "llm_local_b",
+      "run_dir": "builtin:llm_trader",
+      "params": { "provider": "ollama", "model": "qwen3:8b" }
+    }
+  ],
+  "per_strategy_cash": 25000,
+  "per_strategy_loss_cutoff": 10000,
+  "gemini_model": "gemini-3.5-flash",
+  "gemini_provider": "gemini",
+  "ollama_url": "http://localhost:11434",
+  "ollama_model": "llama3.1:8b"
+}

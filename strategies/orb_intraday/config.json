@@ -1,0 +1,11 @@
+{
+  "codes": ["RELIANCE.NS", "SBIN.NS", "ICICIBANK.NS"],
+  "start_date": "2026-05-15",
+  "end_date": "2026-07-10",
+  "source": "yahoo",
+  "interval": "15m",
+  "engine": "daily",
+  "intraday": true,
+  "initial_cash": 50000,
+  "slippage": 0.0005
+}

@@ -1,0 +1,103 @@
+# Bugs & Design Constraints
+
+## Open
+
+### BUG-004 — Host shutdown mid-session wipes the day's paper state; **now 2 days running (07-15, 07-16)**
+- **Date:** 2026-07-15, **recurred 2026-07-16** · **Severity:** ~~medium~~ → **HIGH — escalated 2026-07-16** (no code fault, but it has now destroyed **both** days of the ranking week; a bake-off that cannot survive a reboot cannot produce the weekly ranking it exists to produce) · **Where:** `src/intraday/portfolio.py` / `bakeoff.py` (no state persistence or crash-resume)
+
+#### Recurrence — 2026-07-16 (second consecutive day)
+- **What happened:** the host went down again mid-session. The 08:16 process (PID 19800) died holding open positions; a fresh process (PID 26628) was started **12:56:36**, passed roster preflight, and resumed trading — but with **all 42 slots reset to a fresh ₹25k** (`Session P&L: +₹0.00` on every 12:56 fill). The morning's fills — including `llm_trader`'s 4 longs at ≈−₹66 MTM — survive **only** in `logs/bakeoff-20260716.log` and Telegram. Dhan token was unaffected (minted 08:15:36, valid to 07-17 08:15), which is why the restart needed no token refresh.
+- **Open shorts at death were inert, not dangerous:** the old process died with uncovered paper shorts (3L went live today), which never hit the 15:15 force-cover. They are in-memory fictions that vanished with the process — **no settlement exposure, no real money**. The force-cover invariant only binds inside a living process. Worth stating explicitly now that shorts exist, because "uncovered short at shutdown" reads alarming in a live context.
+- **The dangerous part is the scoreboard, not the trades:** the restarted process will run its normal EOD and `save_day(2026-07-16)`, which **replaces any existing records for that date** — writing a **2h15m fresh-capital afternoon** into `scoreboard.json` as though it were a full day, which then feeds the weekly net-of-cost ranking. Every slot gets ~⅓ of a day's opportunity, no morning context, and the morning's real trades are absent.
+- **Decision (user, 2026-07-16 ~13:00): run on, exclude today.** Let the restarted process trade to 15:30 — the afternoon is worthwhile **live-fire validation of the 3L short path** (real `SHORT` entries confirmed on `squeeze_momentum_ls`, `wavetrend_ls`, `qqe_mode_ls`) at zero capital risk — then **delete the 07-16 row from `scoreboard.json` after the close** (keep a `.bak`, same as the 07-15 junk-row cleanup). Rejected: a `partial: true` schema + `weekly_table()` skip logic (more code tonight on top of §3M, and leaves a partial row that a future session could rank on by accident).
+- **Net effect on the plan:** **07-15 scratch + 07-16 scratch → the ranking week now starts 07-17**, which lands cleanly: §3M executes tonight, so 07-17 becomes **day 1 of a clean 40-slot week** rather than day 2 of a compromised 42-slot one.
+- **This makes state persistence the top candidate at the ≈07-17/18 checkpoint** — it is no longer a nice-to-have. Two hosts deaths in two days means the expected cost of *not* having crash-resume is now measured in whole ranking days.
+- **Scope note (2026-07-16):** §3N handles short **network/Wi-Fi drops** (≤5 min, process alive) — a *different* failure mode that does **not** touch this bug. BUG-004 is **process/host death**, which needs a supervisor + state persistence. The user has chosen to handle crashes separately for now ("crashes shouldn't happen now"), so this stays **OPEN and user-deferred** — not fixed by §3N.
+
+#### Original occurrence — 2026-07-15
+- **Symptom:** `agent/logs/bakeoff-20260715.log` stops at **14:03:47 IST** (right after a successful hourly Telegram rollup). No 15:00 flatten, no 15:15 square-off, no EOD scoreboard ever ran.
+- **Cause:** the **host went down uncleanly ~14:03** — Windows System log has **zero events 14:00→16:19**, then Kernel-Power **Event 41** ("rebooted without cleanly shutting down") at 16:20, followed by Windows-Update (TrustedInstaller) servicing reboots 16:20–16:25. Power loss or hard hang; not a bake-off crash (no bluescreen report either).
+- **Impact:** contained by luck — every position had already been exited at **13:02** and no entries followed, so nothing was stranded open. But paper state is in-memory only, so day-1 results (≈ **−₹475** total across the 4 strategies, all round trips small losses of ₹17–48, fee-heavy) exist only in the log/Telegram — **no scoreboard entry for day 1**. Week-1 ranking effectively starts 2026-07-16 (which was already the plan for the expanded roster — now 20 strategies after 3H — + detailed reports).
+- **Also found:** `~/.vibe-trading/intraday/scoreboard.json` contains two junk rows (`"A"`/`"B"`, dated 2026-07-14) — tests use `tmp_path`, so likely a 3D.2-era manual smoke run wrote the default path. **Clean these before the 07-16 session** or the weekly aggregation starts polluted.
+- **Proposed fix (decide at the ≈07-17/18 checkpoint, alongside SL/TP):** persist per-strategy fills/state to a per-day JSONL each tick so a restart can resume or at least emit a partial EOD; operationally, defer Windows-Update restarts during market hours.
+
+## Resolved / documented
+
+### DC-004 — EOD scoreboard halted-pair rows are not truncation-proof (documented limitation, 2026-07-19, B4-2; unreachable at current scale)
+- **Date:** 2026-07-19 (found by Fable's independent QA of B4-2) · **Severity:** low / **not reachable at 64 slots** · **Where:** `src/intraday/scoreboard.py::format_scoreboard`
+- **What:** the "halted slots always visible" invariant holds unconditionally for the **hourly** report (halted pairs render in the never-dropped `_cap_report` *tail*), but in the **EOD scoreboard** halted pairs are ranked-last *body* rows — so if the report ever exceeds the 3-chunk cap, the cap drops body rows from the end and would drop the halted pairs **first**. (The unpaired-`llm` tail line still survives.)
+- **Why it's not a live risk now:** the EOD scoreboard at the 64-slot roster is **1,931 chars / 1 chunk** against a ~12,000-char (3-chunk) budget — ~6× headroom. Truncation only triggers around **~150+ pairs** of content, far beyond the 31 pairs + 2 llm live today.
+- **Fix if the roster grows past ~100 pairs:** move halted pairs out of the droppable body into the always-kept tail of `format_scoreboard` (mirror the hourly), or exempt halted rows from `_cap_report` truncation. Left as a backlog note per user scope (B4-2 was formatters-for-64-slots); no code change made.
+
+### BUG-009 — B4-2 pair-collapse could hide a kill-switched **unpaired** slot's halt flag (caught + fixed 2026-07-19, pre-ship)
+- **Date:** 2026-07-19 (caught during the B4-2 report rework, before any tick ran — never live) · **Resolved:** same session · **Severity:** low (new report code; caught in the same pass) · **Where:** `src/intraday/scoreboard.py::format_hourly_detailed` / `format_scoreboard`
+- **Symptom (would-have-been):** the pre-B4-2 hourly rendered *every* slot individually, so a halted slot always showed its `✖ RETIRED` + reason. The new pairing routes slots with no `_ls` twin (`llm_local_a`/`llm_local_b`) to a compact `llm:` line that printed only name + net ₹ — so a kill-switched llm slot would have appeared as a plain negative number with **no halt flag**, silently violating the standing "halted slots always visible" rule.
+- **Root cause:** the unpaired-slot branch didn't check `halted` (only paired slots got the ✖ treatment via `_pair_halted`).
+- **Fix:** both formatters append ` ✖` to a halted unpaired slot on the `llm:` / `llm (unpaired):` line. Covered by `test_hourly_unpaired_llm_slot_rendered_and_flagged` (a halted `llm_local_b` must show ✖). 386 tests green.
+
+### BUG-008 — Connors RSI(2) never armed a mirrored short (degenerate zero-loss RSI collapsed to 50) (found + fixed 2026-07-19, §3U)
+- **Date:** 2026-07-19 (caught by the strategy suite during the §3U Tier-1 port batch — pre-ship, never live) · **Resolved:** same session · **Severity:** low (new offline strategy code; the test gate blocked it) · **Where:** `strategies/connors_rsi2/code/signal_engine.py::_rsi`
+- **Symptom:** `test_hybrid_emits_short_on_mirrored_fixture[connors_rsi2]` and `test_hybrid_short_same_day_trades[connors_rsi2]` failed — the `allow_short` twin emitted **no** −1 on the mirrored fixture (long side was fine).
+- **Root cause:** the RSI helper (copied from the §3S `bb_rsi` house style) does `rs = avg_gain / avg_loss.replace(0, NaN)` then `rsi.fillna(50.0)`. On a **2-period** RSI a 2-bar up-only window has `avg_loss == 0` → `rs` NaN → RSI NaN → `fillna(50)` turned a *fully-overbought* value into a *neutral* 50. The short entry needs RSI(2) > 95, so it never triggered. The mirror of the long dip (an up-spike) hits exactly this case; the all-down long case (`avg_gain == 0` → RSI 0) was already correct, which is why only the short broke. (Harmless in `bb_rsi`/`macd_rsi`/`rsi_div` because a 14-period all-up window is rare; RSI(2) hits the degenerate ends constantly.)
+- **Fix:** apply the standard convention before the `fillna` — `where(avg_loss == 0 & avg_gain > 0 → 100)`. Both directions now fire; 228 strategy tests green.
+
+### BUG-006 — Morning watchlist died on a Gemini daily-quota 429; no retry, no fallback (fixed 2026-07-17, §3O)
+- **Date:** 2026-07-17 (08:37 IST, first call of the day) · **Resolved:** 2026-07-17 post-close (§3O) · **Severity:** low (research bookend only — zero trading impact) · **Where:** `src/intraday/gemini_jobs.py::_call`
+- **Symptom:** the pre-market watchlist call returned **HTTP 429 Too Many Requests** on the *first* Gemini call of the day; `_call` caught it and posted the literal fallback `"(no watchlist)"` to Telegram.
+- **Root cause:** Google's free-tier **daily** quota resets at midnight **Pacific** ≈ 12:30 IST. 08:37 IST on 07-17 was still inside the 07-16 Pacific quota day — which the two (since-removed) `llm_trader` slots had exhausted with ~50 calls. A first-call 429 is quota, not rate; a retry alone could not have helped.
+- **Structural fix (landed 07-16):** §3M cut Gemini volume from ~50 calls/day to 2 (watchlist + EOD), so we should never exhaust our own quota again.
+- **Hardening fix (§3O, 2026-07-17):** `_call` now retries **transient** failures only (timeout / transport / 5xx / 429) up to 3 attempts with 2s/8s sleeps; when retries are exhausted, the prompt runs through the **local-Ollama fallback caller** (`src/intraday/local_llm.py::ollama_generate`, attached to the real Gemini caller by `make_llm_caller`) and the output is posted with a `[local]` prefix — the static `"(no watchlist)"`/`"(no review)"` string is now the last resort, not the first. Covered by `tests/test_gemini_jobs.py` (13 tests).
+
+### BUG-007 — Portfolio test wrote junk rows into the REAL weekly scoreboard (fixed 2026-07-17, batch pre-step)
+- **Date:** 2026-07-17 (found during §3O–§3R planning) · **Resolved:** 2026-07-17 post-close · **Severity:** medium (silently corrupted the ranking-week data file every test run) · **Where:** `tests/test_intraday_portfolio.py::_portfolio()` (`store=None` default → the **real** `~/.vibe-trading/intraday/scoreboard.json`)
+- **Symptom:** "A"/"B" rows dated 2026-07-14 kept reappearing in the weekly scoreboard after being cleaned on 07-15 — on 07-17 they were back carrying `long_pnl`/`short_pnl` fields that only exist since 3L → proof they were re-written by test runs (`test_run_session_finalizes` → `finalize()` → `save_day()`), not by a stale file.
+- **Fix:** `_portfolio()` now builds a **tempfile-backed** `ScoreboardStore` whenever no store is injected — no current or future test in that file can reach the real path. Verified: full suite run, then the real scoreboard.json still holds **exactly 40 rows, all dated 2026-07-17**.
+- **Cleaned (earlier same day):** A/B junk + 07-16 scratch rows removed; backup `scoreboard.json.bak-20260717`.
+
+### BUG-005 — `llm_trader_ls` frozen on stale 09:15 decisions all session — CLOSED WON'T FIX (§3M executed 2026-07-16)
+- **Date found:** 2026-07-16 (live, ~10:40 IST, first hybrid session) · **Closed:** 2026-07-16 (post-close, §3M) · **Severity when open:** high · **Where:** `src/intraday/llm_engine.py` (`_decide` keep-last path, ~line 286)
+- **Symptom:** `llm_trader_ls` had **zero fills** since the open while its long-only twin `llm_trader` traded normally (4 entries). Journal (`llm_journal-20260716.jsonl`) showed the `_ls` slot emitting **byte-identical decisions on every tick** 09:15→10:30 — same `reason`/`stop`/`target`, `changed: false`, 0 longs, 0 shorts.
+- **Cause:** the slot's Gemini call failed on **every** tick (httpx read/connect timeouts — 7 `keeping last decisions` warnings). Keep-last is the designed failure mode, but a 100% failure rate pinned the slot to its **09:15 `forced_flat`** state (opening no-entry window). Keep-last had no staleness bound, so a slot that never got a successful call after the open could never trade.
+- **Also found (logging defect):** the warning was hardcoded `"llm_trader: ..."` regardless of slot, and the journal record carried no slot field — the freeze was only detectable by diffing the journal.
+- **Resolution — WON'T FIX (superseded by §3M):** the user decided 2026-07-16 ~10:45 to **deprecate both LLM slots on cost grounds** (`docs/IMPLEMENTATION_PLAN.md` §3M). §3M executed after the 07-16 close — `llm_trader` + `llm_trader_ls` removed from all three live rosters, so the frozen slot no longer exists. A retired slot does not get bounded keep-last, slot-tagged logging and staggered calls built for it. `llm_engine.py` + its 18 tests are retained (soft-disable), so **if the LLM slot is ever revived, the standing lesson applies**: keep-last with no staleness bound can silently pin a slot to a `forced_flat` window artefact for a whole session — never let `forced_flat` become the frozen baseline; bound keep-last to N failures and surface degraded slots in the hourly rollup.
+
+### BUG-003 — Watchlist prompt let Gemini invent leverage numbers (fixed 2026-07-15)
+- **Date:** 2026-07-15 · **Severity:** low (misleading feed text only — engine unaffected) · **Where:** `src/intraday/gemini_jobs.py::premarket_watchlist`
+- **Symptom:** day-1 Telegram watchlist claimed "5x leverage on ₹50k = ₹25,00,000 buying power" — wrong on every count (the paper broker is strictly 1x cash; 5×₹50k would be ₹2.5L anyway; and the bake-off trades ₹25k per strategy, not ₹50k).
+- **Cause:** the prompt quoted the single-strategy `initial_cash` (₹50k) and said "MIS", inviting the LLM to add broker-lore about intraday margin; nothing forbade it.
+- **Fix:** prompt now states the roster-aware capital (₹25k × 4 strategies), says "cash-only paper trading (NO leverage or margin — do not mention leverage or buying power)", forbids restating capital/sizing, and demands **plain text** (the day-1 message also showed literal `**` because Gemini emitted markdown into an HTML-parse-mode sink). Same plain-text rule added to the EOD-review prompt. Applies from the next session. Reminder: watchlist/EOD text is **research narrative only** — it never influences sizing or orders. Day-1's "₹2,500,000 at 5x" was additionally Gemini's own arithmetic error (5 × ₹50k = ₹2.5L, not ₹25L) — a live example of why the LLM stays out of the trading path.
+
+### BUG-001 — Real Gemini caller imported a module that doesn't exist (fixed 2026-07-15)
+- **Date:** 2026-07-15 · **Severity:** high (live-path dead on arrival) · **Where:** `src/intraday/gemini_jobs.py::make_llm_caller`
+- **Symptom:** with a **real** `GEMINI_API_KEY` set, every watchlist/EOD call raised `ModuleNotFoundError` and fell back to `"(no watchlist)"` — the stub path worked, the live path never could.
+- **Cause:** the `_real` caller lazily imported `src.llm.factory.build_chat_model`, which exists nowhere in the base repo (assumed API, never verified — only reachable once a real key landed, so 3C/3D tests couldn't catch it).
+- **Fix:** replaced with `gemini_generate()` — a direct httpx POST to the Gemini REST `generateContent` endpoint (same minimal one-way style as the Telegram sink; no LangChain needed for the two bookend calls). Covered by `tests/test_intraday_live_wiring.py`; verified live (real key, `VIBE-INTRADAY GEMINI OK` echo).
+
+### BUG-002 — Base Dhan connector incompatible with dhanhq 2.x (fixed 2026-07-15)
+- **Date:** 2026-07-15 · **Severity:** high (no live bars) · **Where:** `src/trading/connectors/dhan/sdk.py::_dhan_client` + `get_historical_bars`
+- **Symptom:** every bar fetch failed with `dhanhq.__init__() takes 2 positional arguments but 3 were given` (installed dhanhq 2.2.0).
+- **Cause:** the vendored connector targets dhanhq **1.x** — `dhanhq(client_id, token)` ctor, `intraday_daily_candle_data`/`historical_daily_candle_data` methods, and the v1 `data.candles` list payload. dhanhq 2.x wraps creds in `DhanContext`, renames the methods (`intraday_minute_data`/`historical_daily_data`), and returns **parallel arrays** (`timestamp/open/high/low/close/volume`). Pinning 1.x back was rejected: it targets Dhan's deprecated v1 endpoints.
+- **Fix:** `_dhan_client` builds a `DhanContext` when the installed package has one (1.x call kept as fallback); `get_historical_bars` dispatches on the available method, passes `interval` minutes + a **+1-day exclusive `to_date`** (so the current session's bars are included), and parses **both** payload shapes; a `failure` status now returns an error envelope with Dhan's remarks. Covered by `tests/test_intraday_live_wiring.py`; verified live (all 4 universe symbols returning real 15m bars).
+
+### DC-003 — Dhan sdk creds come from a saved file, not the environment (2026-07-15)
+- **Date:** 2026-07-15 · **Severity:** high (silent empty-cred calls) · **Where:** `dhan/sdk.py::load_config` vs `agent/.env`; fix in `src/intraday/bars.py`
+- **Symptom:** with creds only in `agent/.env`, `DhanBarSource` calls would run with an **empty** `DhanConfig` — the sdk's default `load_config()` reads `~/.vibe-trading/dhan.json` and never looks at the environment.
+- **Resolution:** `dhan_config_from_intraday(config)` builds a paper-profile, readonly `DhanConfig` from the `IntradayConfig` creds (which do come from `.env`), and `DhanBarSource` now accepts `dhan_config=` and threads it into every `get_historical_bars` call. Secrets stay in `.env` only; no `dhan.json` needed for M1. The launcher (`src/intraday/bakeoff.py`) wires this automatically.
+
+### DC-002 — Dhan needs numeric `security_id` + intraday history ≈ 5 days (3C)
+- **Date:** 2026-07-14 · **Severity:** medium (data-path correctness) · **Where:** `dhan/sdk.py::get_historical_bars`, `backtest/loaders/india_broker_loader.py`, `src/intraday/bars.py`
+- **Symptom (1):** the generic `india_broker` backtest loader passes the **bare ticker** (`RELIANCE`) as the Dhan symbol/security id; Dhan's quote/history endpoints key on the **numeric security id** (e.g. `2885`), so live Dhan history would come back empty/wrong.
+- **Symptom (2):** Dhan intraday candles (`intraday_daily_candle_data`) only cover ≈ the **last 5 trading days**, far too short for a meaningful 15m backtest.
+- **Resolution:** the 15m path itself is correct (`_PERIOD_MAP` + `intraday_daily_candle_data` handle `15m`). At our layer, `DhanBarSource` resolves each symbol to its configured `Instrument.security_id`/`exchange_segment` and passes them explicitly — so the **live paper loop** gets correct Dhan bars once ids are filled in `config/intraday.json`. Deep 15m **backtests** deliberately keep using Yahoo (documented). Not a base-repo bug — a Dhan API shape + config requirement.
+- **Action for operator:** fill each universe symbol's `security_id` from the Dhan dashboard before enabling `DhanBarSource` (symbols without an id are skipped, not errored).
+
+### DC-001 — Intraday flatten must lead the close by one bar (design constraint)
+- **Date:** 2026-07-13 · **Severity:** medium (correctness) · **Where:** `IndiaIntradayEngine` + all intraday `SignalEngine`s
+- **Symptom:** an intraday strategy that emits its flat signal on the final bar of the
+  day (15:15) does not exit that day — the position is carried to the next day's 09:15 open.
+- **Cause:** the backtest engine fills on the **next bar's open** (`_align` shifts signals by
+  one bar). A flat on the last bar has no same-day bar to execute against.
+- **Resolution:** intraday strategies must go flat one bar **before** the close (~15:00) so
+  the square-off executes at 15:15 same-day. Encoded in the integration test
+  (`test_same_day_round_trip_is_recorded`) and to be enforced in the live runtime's flatten
+  (3D) independently of the strategy. Not an engine bug — an execution-timing constraint.

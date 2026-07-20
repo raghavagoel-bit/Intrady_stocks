@@ -1,0 +1,13 @@
+.venv/
+.ui_runtime/
+.vscode/
+__pycache__/
+*.pyc
+
+runs/
+
+.env
+
+# Vibe-Intraday: local config may hold Dhan security ids / tweaks — keep local.
+# The committed template is config/intraday.example.json.
+config/intraday.json
